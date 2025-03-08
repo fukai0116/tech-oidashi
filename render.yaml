@@ -1,11 +1,16 @@
 services:
+  - type: static
+    name: tech-oidashi-client
+    buildCommand: cd client && npm install && npm run build
+    publishPath: ./client/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://tech-oidashi.onrender.com
+
   - type: web
-    name: tech-oidashi
+    name: tech-oidashi-server
     env: node
-    buildCommand: |
-      npm install
-      cd client && npm install && npm run build
-      cd ../server && npm install
+    buildCommand: cd server && npm install
     startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
