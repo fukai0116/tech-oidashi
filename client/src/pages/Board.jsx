@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import './Board.css';
@@ -16,22 +16,23 @@ function Board() {
   const [error, setError] = useState(null);
   const boardRef = useRef(null);
 
-  useEffect(() => {
-    fetchBoard();
-  }, [id]);
-
-  const fetchBoard = async () => {
+  const fetchBoard = useCallback(async () => {
+    if (!id) return;
     try {
       const response = await axios.get(`/api/messageboards/${id}`);
       setBoard(response.data);
       setError(null);
     } catch (err) {
       setError('色紙の読み込みに失敗しました。');
-      console.error('Error fetching board:', err);
+      console.error('Error fetching board:', err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchBoard();
+  }, [fetchBoard]);
 
   const handleMessageSubmit = async (e) => {
     e.preventDefault();

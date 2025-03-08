@@ -18,16 +18,16 @@ const app = new Hono();
 
 // CORS configuration
 const corsOptions = {
-  origin: NODE_ENV === 'production' 
-    ? ['https://tech-oidashi.onrender.com'] 
+  origin: NODE_ENV === 'production'
+    ? ['https://tech-oidashi-client.onrender.com', 'https://tech-oidashi-1.onrender.com']
     : ['http://localhost:3000'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
-  exposeHeaders: ['Content-Length', 'X-Requested-With']
+  credentials: true
 };
 
 // Middleware
-app.use(cors(corsOptions));
+app.use('*', cors(corsOptions));
 
 // API Routes
 app.use('/api/*', async (c, next) => {

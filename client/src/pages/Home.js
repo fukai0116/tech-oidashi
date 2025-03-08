@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Home.css';
 
+const API_URL = process.env.REACT_APP_API_URL || '';
+
 function Home() {
   const [messageBoards, setMessageBoards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +16,7 @@ function Home() {
 
   const fetchMessageBoards = async () => {
     try {
-      const response = await axios.get('/api/messageboards');
+      const response = await axios.get(`${API_URL}/api/messageboards`);
       setMessageBoards(response.data);
       setError(null);
     } catch (err) {
