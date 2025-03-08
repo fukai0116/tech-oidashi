@@ -5,6 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 // Environment variables
 const PORT = process.env.PORT || 3001;
@@ -18,19 +19,20 @@ const app = new Hono();
 // CORS configuration
 const corsOptions = {
   origin: NODE_ENV === 'production' 
-    ? ['https://tech-oidashi-client.onrender.com'] 
+    ? ['https://tech-oidashi.onrender.com'] 
     : ['http://localhost:3000'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   exposeHeaders: ['Content-Length', 'X-Requested-With']
 };
 
-// Serve static files in production
-if (NODE_ENV === 'production') {
-  const staticPath = path.join(__dirname, '../client/build');
-  app.use('/*', serveStatic({ root: staticPath }));
-  app.get('*', (c) => c.redirect('/'));
-}
+// Middleware
+app.use(cors(corsOptions));
+
+// API Routes
+app.use('/api/*', async (c, next) => {
+  await next();
+});
 
 // Initialize SQLite database
 const db = new Database(DB_PATH);
@@ -57,9 +59,6 @@ db.exec(`
     FOREIGN KEY (boardId) REFERENCES message_boards(id)
   );
 `);
-
-// Middleware
-app.use(cors(corsOptions));
 
 // Get list of message boards
 app.get('/api/messageboards', async (c) => {
@@ -126,6 +125,24 @@ app.post('/api/messageboards/:id/messages', async (c) => {
     return c.json({ error: 'Failed to add message' }, 500);
   }
 });
+
+// Serve static files in production
+if (NODE_ENV === 'production') {
+  const staticPath = path.join(__dirname, '../client/build');
+  
+  // Serve static files first
+  app.use('/*', serveStatic({ root: staticPath }));
+  
+  // Fallback for client-side routing
+  app.get('*', async (c) => {
+    if (!c.req.path.startsWith('/api')) {
+      const indexPath = path.join(staticPath, 'index.html');
+      const indexContent = fs.readFileSync(indexPath, 'utf-8');
+      return c.html(indexContent);
+    }
+    return c.next();
+  });
+}
 
 // Start server
 serve({
