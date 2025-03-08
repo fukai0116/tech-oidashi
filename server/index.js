@@ -15,6 +15,16 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'shikishi.db');
 // Initialize Hono app
 const app = new Hono();
 
+// CORS configuration
+const corsOptions = {
+  origin: NODE_ENV === 'production' 
+    ? ['https://tech-oidashi-client.onrender.com'] 
+    : ['http://localhost:3000'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length', 'X-Requested-With']
+};
+
 // Serve static files in production
 if (NODE_ENV === 'production') {
   const staticPath = path.join(__dirname, '../client/build');
@@ -49,7 +59,7 @@ db.exec(`
 `);
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Get list of message boards
 app.get('/api/messageboards', async (c) => {
