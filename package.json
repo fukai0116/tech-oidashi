@@ -1,0 +1,15 @@
+{
+  "name": "tech-oidashi",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
+    "deploy": "npm run install-all && npm run build && npm start"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

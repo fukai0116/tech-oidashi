@@ -1,0 +1,86 @@
+.home-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.home-container h1 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.create-board-link {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.btn-create {
+  display: inline-block;
+  background: #4CAF50;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.btn-create:hover {
+  background: #45a049;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.board-card {
+  text-decoration: none;
+  color: #333;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.board-card h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+}
+
+.board-card p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.created-at {
+  margin-top: auto;
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.no-boards {
+  text-align: center;
+  color: #666;
+  margin-top: 3rem;
+  font-size: 1.1rem;
+}
+
+.error-message {
+  color: #f44336;
+  text-align: center;
+  padding: 1rem;
+  background: #ffebee;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
