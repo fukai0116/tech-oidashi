@@ -19,18 +19,25 @@ function Board() {
   const boardRef = useRef(null);
 
   const fetchBoard = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      navigate('/', { replace: true });
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await axios.get(`/api/messageboards/${id}`);
-      setBoard(response.data);
       setError(null);
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/messageboards/${id}`);
+      if (!response.data) {
+        throw new Error('Board not found');
+      }
+      setBoard(response.data);
     } catch (err) {
       console.error('Error fetching board:', err);
-      if (err.response?.status === 404) {
+      if (err.response?.status === 404 || err.message === 'Board not found') {
         setError('指定された色紙が見つかりませんでした。');
         // 3秒後にホームに戻る
-        setTimeout(() => navigate('/'), 3000);
+        setTimeout(() => navigate('/', { replace: true }), 3000);
       } else {
         setError('色紙の読み込みに失敗しました。再度お試しください。');
       }

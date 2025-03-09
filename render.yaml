@@ -3,6 +3,10 @@ services:
     name: tech-oidashi-client
     buildCommand: cd client && npm install && npm run build
     publishPath: client/build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: REACT_APP_API_URL
         value: https://tech-oidashi-server.onrender.com
