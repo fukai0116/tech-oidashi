@@ -47,7 +47,13 @@
   transform: translate(-50%, -50%);
   max-width: 250px; /* メッセージの最大幅を大きく */
   word-wrap: break-word;
-  z-index: 5;
+  z-index: 1;
+  transition: transform 0.2s ease;
+}
+
+.message:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+  z-index: 2;
 }
 
 .message-bubble {
@@ -149,6 +155,73 @@
   background: #ffebee;
   border-radius: 4px;
   margin: 1rem 0;
+}
+
+.delete-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.delete-modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 90%;
+  width: 400px;
+}
+
+.delete-modal h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.delete-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+}
+
+.btn-delete:disabled {
+  background-color: #e9acb3;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
 }
 
 /* レスポンシブ対応 */

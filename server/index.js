@@ -133,6 +133,27 @@ app.post('/api/messageboards/:id/messages', async (c) => {
   }
 });
 
+// Delete a message
+app.delete('/api/messageboards/:boardId/messages/:messageId', async (c) => {
+  try {
+    const { boardId, messageId } = c.req.param();
+    
+    // メッセージの存在確認
+    const message = db.prepare('SELECT * FROM messages WHERE id = ? AND boardId = ?').get(messageId, boardId);
+    if (!message) {
+      return c.json({ error: 'Message not found' }, 404);
+    }
+
+    // メッセージの削除
+    db.prepare('DELETE FROM messages WHERE id = ? AND boardId = ?').run(messageId, boardId);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    return c.json({ error: 'Failed to delete message' }, 500);
+  }
+});
+
 // Serve static files in production
 if (NODE_ENV === 'production') {
   const staticPath = path.join(__dirname, '../client/build');

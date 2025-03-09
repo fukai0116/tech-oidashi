@@ -17,6 +17,9 @@ function Board() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const boardRef = useRef(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchBoard = useCallback(async () => {
     if (!id) {
@@ -149,6 +152,48 @@ function Board() {
     return false; // 重なっていない
   };
 
+  const handleMessageClick = (message, event) => {
+    event.stopPropagation(); // イベントの伝播を停止
+    setSelectedMessage(message);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage || deleting) return;
+
+    try {
+      setDeleting(true);
+      await axios.delete(`/api/messageboards/${id}/messages/${selectedMessage.id}`);
+      await fetchBoard(); // 色紙を再読み込み
+      setShowDeleteModal(false);
+      setSelectedMessage(null);
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      setError('メッセージの削除に失敗しました。');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowDeleteModal(false);
+    setSelectedMessage(null);
+  };
+
+  // クリック以外の場所をタップした時にモーダルを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showDeleteModal && !event.target.closest('.delete-modal')) {
+        handleCloseModal();
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showDeleteModal]);
+
   if (loading) return <div className="loading">読み込み中...</div>;
   if (error) return <div className="error-message">{error}</div>;
   if (!board) return <div className="not-found">色紙が見つかりません。</div>;
@@ -173,8 +218,10 @@ function Board() {
             style={{
               left: `${message.position.x}%`,
               top: `${message.position.y}%`,
-              color: message.color
+              color: message.color,
+              cursor: 'pointer'
             }}
+            onClick={(e) => handleMessageClick(message, e)}
           >
             <div className="message-bubble">
               <p className="message-content">{message.content}</p>
@@ -183,6 +230,28 @@ function Board() {
           </div>
         ))}
       </div>
+
+      {/* 削除確認モーダル */}
+      {showDeleteModal && selectedMessage && (
+        <div className="delete-modal">
+          <div className="delete-modal-content">
+            <h3>メッセージを削除</h3>
+            <p>このメッセージを削除してもよろしいですか？</p>
+            <div className="delete-modal-buttons">
+              <button 
+                onClick={handleDeleteMessage} 
+                disabled={deleting}
+                className="btn-delete"
+              >
+                {deleting ? '削除中...' : '削除'}
+              </button>
+              <button onClick={handleCloseModal} className="btn-cancel">
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleMessageSubmit} className="message-form">
         <div className="form-group">
