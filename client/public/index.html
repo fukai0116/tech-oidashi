@@ -5,16 +5,22 @@
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="デジタル色紙 - オンラインでメッセージを共有"
-    />
+    <meta name="description" content="デジタル色紙アプリ" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>デジタル色紙</title>
+    <!-- 静的サイトでのルーティング対応 -->
+    <script>
+      (function() {
+        const path = window.location.pathname;
+        if (path !== '/' && !path.startsWith('/static/')) {
+          localStorage.setItem('lastPath', path);
+        }
+      })();
+    </script>
   </head>
   <body>
-    <noscript>このアプリケーションを実行するにはJavaScriptを有効にする必要があります。</noscript>
+    <noscript>JavaScriptを有効にしてください。</noscript>
     <div id="root"></div>
   </body>
 </html>

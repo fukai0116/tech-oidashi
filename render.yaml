@@ -1,20 +1,8 @@
 services:
-  - type: web
-    name: tech-oidashi-server
-    env: node
-    buildCommand: cd server && npm install
-    startCommand: cd server && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3001
-
   - type: static
     name: tech-oidashi-client
-    env: static
     buildCommand: cd client && npm install && npm run build
     publishPath: client/build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://tech-oidashi.onrender.com/
+        value: https://tech-oidashi-server.onrender.com

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Board.css';
 
 function Board() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [board, setBoard] = useState(null);
   const [newMessage, setNewMessage] = useState({
     author: '',
@@ -14,21 +15,29 @@ function Board() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const boardRef = useRef(null);
 
   const fetchBoard = useCallback(async () => {
     if (!id) return;
     try {
+      setLoading(true);
       const response = await axios.get(`/api/messageboards/${id}`);
       setBoard(response.data);
       setError(null);
     } catch (err) {
-      setError('色紙の読み込みに失敗しました。');
-      console.error('Error fetching board:', err.response?.data || err.message);
+      console.error('Error fetching board:', err);
+      if (err.response?.status === 404) {
+        setError('指定された色紙が見つかりませんでした。');
+        // 3秒後にホームに戻る
+        setTimeout(() => navigate('/'), 3000);
+      } else {
+        setError('色紙の読み込みに失敗しました。再度お試しください。');
+      }
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchBoard();
@@ -36,9 +45,14 @@ function Board() {
 
   const handleMessageSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    
     try {
+      setSubmitting(true);
+      setError(null);
+      
       // 自動的にポジションを計算
-      const position = calculateNonOverlappingPosition(board.messages);
+      const position = calculateNonOverlappingPosition(board.messages || []);
       
       const messageToSubmit = {
         ...newMessage,
@@ -46,7 +60,8 @@ function Board() {
       };
       
       await axios.post(`/api/messageboards/${id}/messages`, messageToSubmit);
-      fetchBoard();
+      await fetchBoard();
+      
       setNewMessage({
         author: '',
         content: '',
@@ -54,8 +69,10 @@ function Board() {
         color: '#000000'
       });
     } catch (err) {
-      setError('メッセージの追加に失敗しました。');
       console.error('Error adding message:', err);
+      setError('メッセージの追加に失敗しました。再度お試しください。');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -125,9 +142,9 @@ function Board() {
     return false; // 重なっていない
   };
 
-  if (loading) return <div>読み込み中...</div>;
+  if (loading) return <div className="loading">読み込み中...</div>;
   if (error) return <div className="error-message">{error}</div>;
-  if (!board) return <div>色紙が見つかりません。</div>;
+  if (!board) return <div className="not-found">色紙が見つかりません。</div>;
 
   return (
     <div className="board-container">
@@ -138,12 +155,10 @@ function Board() {
         className="message-board"
         style={{ backgroundColor: board.backgroundColor }}
       >
-        {/* 中央の宛先名 */}
         <div className="recipient-center">
           <span>{board.recipient}</span>
         </div>
         
-        {/* 周りのメッセージ */}
         {board.messages && board.messages.map((message, index) => (
           <div
             key={message.id || index}
@@ -171,6 +186,7 @@ function Board() {
             value={newMessage.author}
             onChange={(e) => setNewMessage(prev => ({ ...prev, author: e.target.value }))}
             required
+            disabled={submitting}
           />
         </div>
         <div className="form-group">
@@ -180,6 +196,7 @@ function Board() {
             value={newMessage.content}
             onChange={(e) => setNewMessage(prev => ({ ...prev, content: e.target.value }))}
             required
+            disabled={submitting}
             placeholder="卒業生へのメッセージを書いてください"
           />
         </div>
@@ -190,11 +207,12 @@ function Board() {
             id="color"
             value={newMessage.color}
             onChange={(e) => setNewMessage(prev => ({ ...prev, color: e.target.value }))}
+            disabled={submitting}
           />
         </div>
         
-        <button type="submit" className="btn-primary">
-          メッセージを追加
+        <button type="submit" className="btn-primary" disabled={submitting}>
+          {submitting ? '送信中...' : 'メッセージを追加'}
         </button>
       </form>
     </div>

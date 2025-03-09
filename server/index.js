@@ -1,7 +1,6 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { serveStatic } from '@hono/node-server/serve-static';
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,22 +16,13 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'shikishi.db');
 const app = new Hono();
 
 // CORS configuration
-const corsOptions = {
-  origin: NODE_ENV === 'production'
-    ? ['https://tech-oidashi-client.onrender.com', 'https://tech-oidashi-1.onrender.com']
-    : ['http://localhost:3000'],
+app.use('*', cors({
+  origin: ['https://tech-oidashi-1.onrender.com', 'http://localhost:3000'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
-
-// Middleware
-app.use('*', cors(corsOptions));
-
-// API Routes
-app.use('/api/*', async (c, next) => {
-  await next();
-});
+  credentials: true,
+  exposeHeaders: ['Content-Length', 'X-Requested-With']
+}));
 
 // Initialize SQLite database
 const db = new Database(DB_PATH);
@@ -66,6 +56,7 @@ app.get('/api/messageboards', async (c) => {
     const messageBoards = db.prepare('SELECT * FROM message_boards ORDER BY createdAt DESC').all();
     return c.json(messageBoards);
   } catch (error) {
+    console.error('Error fetching message boards:', error);
     return c.json({ error: 'Failed to fetch message boards' }, 500);
   }
 });
@@ -78,6 +69,7 @@ app.post('/api/messageboards', async (c) => {
     const result = stmt.run(data.title, data.recipient, data.backgroundColor);
     return c.json({ ...data, id: result.lastInsertRowid }, 201);
   } catch (error) {
+    console.error('Error creating message board:', error);
     return c.json({ error: 'Failed to create message board' }, 500);
   }
 });
@@ -99,6 +91,7 @@ app.get('/api/messageboards/:id', async (c) => {
       }))
     });
   } catch (error) {
+    console.error('Error fetching message board:', error);
     return c.json({ error: 'Failed to fetch message board' }, 500);
   }
 });
@@ -108,10 +101,18 @@ app.post('/api/messageboards/:id/messages', async (c) => {
   try {
     const { id } = c.req.param();
     const data = await c.req.json();
+    
+    // Verify the board exists
+    const board = db.prepare('SELECT id FROM message_boards WHERE id = ?').get(id);
+    if (!board) {
+      return c.json({ error: 'Message board not found' }, 404);
+    }
+
     const stmt = db.prepare(`
       INSERT INTO messages (boardId, author, content, positionX, positionY, color)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
+    
     const result = stmt.run(
       id,
       data.author,
@@ -120,8 +121,14 @@ app.post('/api/messageboards/:id/messages', async (c) => {
       data.position.y,
       data.color
     );
-    return c.json({ ...data, id: result.lastInsertRowid });
+    
+    return c.json({ 
+      id: result.lastInsertRowid,
+      ...data,
+      boardId: id
+    }, 201);
   } catch (error) {
+    console.error('Error adding message:', error);
     return c.json({ error: 'Failed to add message' }, 500);
   }
 });
@@ -130,17 +137,35 @@ app.post('/api/messageboards/:id/messages', async (c) => {
 if (NODE_ENV === 'production') {
   const staticPath = path.join(__dirname, '../client/build');
   
-  // Serve static files first
-  app.use('/*', serveStatic({ root: staticPath }));
-  
-  // Fallback for client-side routing
+  // Serve manifest.json and other static files
+  app.get('/manifest.json', async (c) => {
+    const manifestPath = path.join(staticPath, 'manifest.json');
+    const content = fs.readFileSync(manifestPath, 'utf-8');
+    return c.json(JSON.parse(content));
+  });
+
+  app.get('/static/*', async (c) => {
+    const filePath = path.join(staticPath, c.req.path);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath);
+      const type = c.req.path.endsWith('.js') ? 'application/javascript' :
+                   c.req.path.endsWith('.css') ? 'text/css' :
+                   'application/octet-stream';
+      return new Response(content, {
+        headers: { 'Content-Type': type }
+      });
+    }
+    return c.notFound();
+  });
+
+  // Serve index.html for all other routes
   app.get('*', async (c) => {
     if (!c.req.path.startsWith('/api')) {
       const indexPath = path.join(staticPath, 'index.html');
-      const indexContent = fs.readFileSync(indexPath, 'utf-8');
-      return c.html(indexContent);
+      const content = fs.readFileSync(indexPath, 'utf-8');
+      return c.html(content);
     }
-    return c.next();
+    return c.notFound();
   });
 }
 
