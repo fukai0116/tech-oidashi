@@ -20,6 +20,8 @@ function Board() {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [boardSize, setBoardSize] = useState('normal'); // 'normal', 'large', 'xlarge'
+  const [messageOverlaps, setMessageOverlaps] = useState(new Set());
 
   const fetchBoard = useCallback(async () => {
     if (!id) {
@@ -89,53 +91,70 @@ function Board() {
   // メッセージが重ならないようにポジションを計算する関数
   const calculateNonOverlappingPosition = (existingMessages) => {
     const messageCount = existingMessages.length;
-    const MAX_ATTEMPTS = 30; // 最大試行回数を増やす
+    const MAX_ATTEMPTS = 50;
+    const MIN_DISTANCE = window.innerWidth <= 480 ? 15 : 20;
     
-    // 安全マージン（メッセージ間の最小距離）
-    const MIN_DISTANCE = 20; // 最小距離を大きくする
+    // ボードサイズに応じて配置範囲を調整
+    let maxRadius;
+    switch (boardSize) {
+      case 'large':
+        maxRadius = 60;
+        break;
+      case 'xlarge':
+        maxRadius = 70;
+        break;
+      default:
+        maxRadius = 45;
+    }
     
-    // 基本的な配置パターン（円形）
-    // 中心からの距離をメッセージ数に応じて調整
-    // 最初の数個は内側に、数が増えたら外側に配置
+    // 基本半径を計算
     let baseRadius;
     if (messageCount < 5) {
-      baseRadius = 25 + Math.random() * 10; // 最初の数個は内側に
+      baseRadius = maxRadius * 0.4;
     } else if (messageCount < 10) {
-      baseRadius = 35 + Math.random() * 10; // 次の数個は中間に
+      baseRadius = maxRadius * 0.6;
     } else {
-      baseRadius = 45 + Math.random() * 15; // それ以降は外側に
+      baseRadius = maxRadius * 0.8;
     }
+
+    // スパイラル配置のパラメータ
+    let angle = Math.random() * 360;
+    let radius = baseRadius;
     
-    let angle = Math.random() * 360; // 完全にランダムな角度から開始
-    
-    // 最初の試行で標準的な円形配置を試す
-    let x = 50 + baseRadius * Math.cos(angle * (Math.PI / 180));
-    let y = 50 + baseRadius * Math.sin(angle * (Math.PI / 180));
-    
-    // すでに存在するメッセージとの衝突チェック
-    let attempts = 0;
-    while (isOverlappingWithExistingMessages({ x, y }, existingMessages, MIN_DISTANCE) && attempts < MAX_ATTEMPTS) {
-      // 別の位置を試す
-      angle = Math.random() * 360;
-      const jitter = Math.random() * 5 - 2.5; // -2.5から2.5のジッター
-      const radius = baseRadius + jitter;
-      x = 50 + radius * Math.cos(angle * (Math.PI / 180));
-      y = 50 + radius * Math.sin(angle * (Math.PI / 180));
-      attempts++;
+    for (let attempts = 0; attempts < MAX_ATTEMPTS; attempts++) {
+      // スパイラルパターンで位置を計算
+      const radians = angle * (Math.PI / 180);
+      const spiralGrowth = attempts * 0.2;
+      radius = baseRadius + spiralGrowth;
       
-      // もし最大試行回数に近づいたら、より広い範囲を試す
-      if (attempts > MAX_ATTEMPTS * 0.7) {
-        const farRadius = 45 + Math.random() * 30; // かなり広い範囲
-        x = 50 + farRadius * Math.cos(angle * (Math.PI / 180));
-        y = 50 + farRadius * Math.sin(angle * (Math.PI / 180));
+      const x = 50 + radius * Math.cos(radians);
+      const y = 50 + radius * Math.sin(radians);
+      
+      // 範囲内に収める
+      const adjustedX = Math.max(10, Math.min(90, x));
+      const adjustedY = Math.max(10, Math.min(90, y));
+      
+      const position = { x: adjustedX, y: adjustedY };
+      
+      // 中央との重なりをチェック
+      if (isOverlappingWithCenter(position)) {
+        angle += 30;
+        continue;
       }
+      
+      // 他のメッセージとの重なりをチェック
+      if (!isOverlappingWithExistingMessages(position, existingMessages, MIN_DISTANCE)) {
+        return position;
+      }
+      
+      angle += 30;
     }
     
-    // 位置が範囲内に収まるように調整（5%-95%の範囲に制限）
-    x = Math.max(5, Math.min(95, x));
-    y = Math.max(5, Math.min(95, y));
-    
-    return { x, y };
+    // 最後の手段として、やや重なっても配置
+    return {
+      x: Math.max(10, Math.min(90, 50 + baseRadius * Math.cos(angle * (Math.PI / 180)))),
+      y: Math.max(10, Math.min(90, 50 + baseRadius * Math.sin(angle * (Math.PI / 180))))
+    };
   };
 
   // 位置が既存のメッセージと重なるかチェックする関数
@@ -150,6 +169,19 @@ function Board() {
       }
     }
     return false; // 重なっていない
+  };
+
+  // 中央との重なりをチェックする関数
+  const isOverlappingWithCenter = (position) => {
+    const centerX = 50;
+    const centerY = 50;
+    const safeDistance = window.innerWidth <= 480 ? 15 : 25; // スマホでは距離を短く
+
+    const dx = position.x - centerX;
+    const dy = position.y - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    return distance < safeDistance;
   };
 
   const handleMessageClick = (message, event) => {
@@ -194,6 +226,18 @@ function Board() {
     };
   }, [showDeleteModal]);
 
+  // ボードサイズの設定
+  const getBoardSizeStyle = () => {
+    switch (boardSize) {
+      case 'large':
+        return { minHeight: '1000px' };
+      case 'xlarge':
+        return { minHeight: '1200px' };
+      default:
+        return { minHeight: '800px' };
+    }
+  };
+
   if (loading) return <div className="loading">読み込み中...</div>;
   if (error) return <div className="error-message">{error}</div>;
   if (!board) return <div className="not-found">色紙が見つかりません。</div>;
@@ -202,10 +246,37 @@ function Board() {
     <div className="board-container">
       <h1>{board.title}</h1>
       
+      <div className="board-size-controls">
+        <button 
+          className="board-size-button"
+          onClick={() => setBoardSize('normal')}
+          disabled={boardSize === 'normal'}
+        >
+          通常サイズ
+        </button>
+        <button 
+          className="board-size-button"
+          onClick={() => setBoardSize('large')}
+          disabled={boardSize === 'large'}
+        >
+          大きめ
+        </button>
+        <button 
+          className="board-size-button"
+          onClick={() => setBoardSize('xlarge')}
+          disabled={boardSize === 'xlarge'}
+        >
+          特大
+        </button>
+      </div>
+      
       <div 
         ref={boardRef}
         className="message-board"
-        style={{ backgroundColor: board.backgroundColor }}
+        style={{ 
+          ...getBoardSizeStyle(),
+          backgroundColor: board.backgroundColor 
+        }}
       >
         <div className="recipient-center">
           <span>{board.recipient}</span>
@@ -214,7 +285,7 @@ function Board() {
         {board.messages && board.messages.map((message, index) => (
           <div
             key={message.id || index}
-            className="message"
+            className={`message ${messageOverlaps.has(message.id) ? 'overlapping-center' : ''}`}
             style={{
               left: `${message.position.x}%`,
               top: `${message.position.y}%`,

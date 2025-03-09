@@ -7,13 +7,36 @@
 .message-board {
   position: relative;
   width: 100%;
-  height: 800px; /* 高さを600pxから800pxに拡大 */
+  min-height: 800px;
+  height: auto;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin: 2rem 0;
   padding: 1rem;
-  overflow: hidden;
+  overflow: visible;
   background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+}
+
+/* サイズ変更コントロール */
+.board-size-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.board-size-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.board-size-button:hover {
+  background-color: #45a049;
 }
 
 /* Centered recipient name */
@@ -23,23 +46,25 @@
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  z-index: 10;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .recipient-center span {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 3.5rem; /* 文字サイズを大きく */
   font-weight: bold;
-  padding: 2rem 4rem; /* パディングを大きく */
-  background: rgba(255, 255, 255, 0.7);
+  padding: 2rem; /* パディングを大きく */
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   border: 2px solid #ddd;
   min-width: 200px; /* 幅を大きく */
   min-height: 200px; /* 高さを大きく */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  max-width: 300px;
+  word-break: break-all;
 }
 
 .message {
@@ -51,13 +76,17 @@
   transition: transform 0.2s ease;
 }
 
+.message.overlapping-center {
+  opacity: 0.7;
+}
+
 .message:hover {
   transform: translate(-50%, -50%) scale(1.05);
   z-index: 2;
 }
 
 .message-bubble {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.95);
   padding: 0.75rem 1.25rem; /* パディングを大きく */
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -227,17 +256,47 @@
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
   .message-board {
-    height: 600px; /* 小さい画面では少し小さく */
+    min-height: 600px;
+    padding: 0.5rem;
   }
   
   .recipient-center span {
-    font-size: 2.5rem;
-    padding: 1.5rem 3rem;
+    font-size: 2rem;
+    padding: 1.5rem;
     min-width: 150px;
     min-height: 150px;
   }
   
   .message {
     max-width: 200px;
+  }
+
+  .message-bubble {
+    padding: 0.5rem 1rem;
+  }
+
+  .message-content {
+    font-size: 0.9rem;
+  }
+
+  .message-author {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-board {
+    min-height: 500px;
+  }
+  
+  .recipient-center span {
+    font-size: 1.5rem;
+    padding: 1rem;
+    min-width: 120px;
+    min-height: 120px;
+  }
+  
+  .message {
+    max-width: 150px;
   }
 }
