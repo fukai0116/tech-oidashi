@@ -20,7 +20,6 @@ function Board() {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [boardSize, setBoardSize] = useState('normal'); // 'normal', 'large', 'xlarge'
   const [messageOverlaps, setMessageOverlaps] = useState(new Set());
   const [boardHeight, setBoardHeight] = useState(800);
   const [messageEdgeClasses, setMessageEdgeClasses] = useState({});
@@ -210,18 +209,6 @@ function Board() {
     };
   }, [showDeleteModal]);
 
-  // ボードサイズの設定
-  const getBoardSizeStyle = () => {
-    switch (boardSize) {
-      case 'large':
-        return { minHeight: '1000px' };
-      case 'xlarge':
-        return { minHeight: '1200px' };
-      default:
-        return { minHeight: '800px' };
-    }
-  };
-
   // ウィンドウサイズの変更を検知
   useEffect(() => {
     const handleResize = () => {
@@ -290,33 +277,9 @@ function Board() {
     <div className="board-container">
       <h1>{board.title}</h1>
       
-      <div className="board-size-controls">
-        <button 
-          className="board-size-button"
-          onClick={() => setBoardSize('normal')}
-          disabled={boardSize === 'normal'}
-        >
-          通常サイズ
-        </button>
-        <button 
-          className="board-size-button"
-          onClick={() => setBoardSize('large')}
-          disabled={boardSize === 'large'}
-        >
-          大きめ
-        </button>
-        <button 
-          className="board-size-button"
-          onClick={() => setBoardSize('xlarge')}
-          disabled={boardSize === 'xlarge'}
-        >
-          特大
-        </button>
-      </div>
-      
       <div className="size-auto-message">
         メッセージ数: {board.messages?.length || 0}件 
-        {board.messages?.length > 5 && '（メッセージ数に合わせて色紙サイズは自動調整されています）'}
+        {board.messages?.length > 5 && '（メッセージ数に合わせて色紙のサイズは自動調整されています）'}
       </div>
       
       <div 
