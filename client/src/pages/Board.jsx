@@ -22,6 +22,9 @@ function Board() {
   const [deleting, setDeleting] = useState(false);
   const [boardSize, setBoardSize] = useState('normal'); // 'normal', 'large', 'xlarge'
   const [messageOverlaps, setMessageOverlaps] = useState(new Set());
+  const [boardHeight, setBoardHeight] = useState(800);
+  const [messageEdgeClasses, setMessageEdgeClasses] = useState({});
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const fetchBoard = useCallback(async () => {
     if (!id) {
@@ -92,68 +95,47 @@ function Board() {
   const calculateNonOverlappingPosition = (existingMessages) => {
     const messageCount = existingMessages.length;
     const MAX_ATTEMPTS = 50;
-    const MIN_DISTANCE = window.innerWidth <= 480 ? 15 : 20;
     
-    // ボードサイズに応じて配置範囲を調整
-    let maxRadius;
-    switch (boardSize) {
-      case 'large':
-        maxRadius = 60;
-        break;
-      case 'xlarge':
-        maxRadius = 70;
-        break;
-      default:
-        maxRadius = 45;
-    }
+    // スマホの場合は距離を短くする
+    const MIN_DISTANCE = windowWidth <= 480 ? 12 : 
+                        windowWidth <= 768 ? 15 : 20;
     
-    // 基本半径を計算
-    let baseRadius;
-    if (messageCount < 5) {
-      baseRadius = maxRadius * 0.4;
-    } else if (messageCount < 10) {
-      baseRadius = maxRadius * 0.6;
-    } else {
-      baseRadius = maxRadius * 0.8;
-    }
-
-    // スパイラル配置のパラメータ
-    let angle = Math.random() * 360;
-    let radius = baseRadius;
+    // メッセージ数と画面サイズに応じてエリアを調整
+    const maxRadius = Math.min(90, 40 + messageCount * 2);
     
+    // 基本的に中央から離す
+    const minRadius = windowWidth <= 480 ? 18 : 25;
+    
+    // メッセージの位置をランダム化してみる
     for (let attempts = 0; attempts < MAX_ATTEMPTS; attempts++) {
-      // スパイラルパターンで位置を計算
-      const radians = angle * (Math.PI / 180);
-      const spiralGrowth = attempts * 0.2;
-      radius = baseRadius + spiralGrowth;
+      // ランダムな角度と半径で位置を決定
+      const angle = Math.random() * 360;
+      const radius = minRadius + Math.random() * (maxRadius - minRadius);
       
+      const radians = angle * (Math.PI / 180);
       const x = 50 + radius * Math.cos(radians);
       const y = 50 + radius * Math.sin(radians);
       
-      // 範囲内に収める
+      // 範囲内に収まるように調整
       const adjustedX = Math.max(10, Math.min(90, x));
       const adjustedY = Math.max(10, Math.min(90, y));
       
       const position = { x: adjustedX, y: adjustedY };
       
-      // 中央との重なりをチェック
-      if (isOverlappingWithCenter(position)) {
-        angle += 30;
-        continue;
-      }
-      
-      // 他のメッセージとの重なりをチェック
-      if (!isOverlappingWithExistingMessages(position, existingMessages, MIN_DISTANCE)) {
+      // 中央と既存メッセージとの衝突チェック
+      if (!isOverlappingWithCenter(position) && 
+          !isOverlappingWithExistingMessages(position, existingMessages, MIN_DISTANCE)) {
         return position;
       }
-      
-      angle += 30;
     }
     
-    // 最後の手段として、やや重なっても配置
+    // どうしても衝突する場合のフォールバック
+    const angle = Math.random() * 360;
+    const radius = minRadius + Math.random() * (maxRadius - minRadius);
+    
     return {
-      x: Math.max(10, Math.min(90, 50 + baseRadius * Math.cos(angle * (Math.PI / 180)))),
-      y: Math.max(10, Math.min(90, 50 + baseRadius * Math.sin(angle * (Math.PI / 180))))
+      x: Math.max(10, Math.min(90, 50 + radius * Math.cos(angle * (Math.PI / 180)))),
+      y: Math.max(10, Math.min(90, 50 + radius * Math.sin(angle * (Math.PI / 180))))
     };
   };
 
@@ -175,8 +157,10 @@ function Board() {
   const isOverlappingWithCenter = (position) => {
     const centerX = 50;
     const centerY = 50;
-    const safeDistance = window.innerWidth <= 480 ? 15 : 25; // スマホでは距離を短く
-
+    // スマホでは中央の安全エリアを小さく
+    const safeDistance = windowWidth <= 480 ? 15 : 
+                         windowWidth <= 768 ? 20 : 25;
+    
     const dx = position.x - centerX;
     const dy = position.y - centerY;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -238,6 +222,66 @@ function Board() {
     }
   };
 
+  // ウィンドウサイズの変更を検知
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // メッセージ数に基づいて自動的に色紙のサイズを調整
+  useEffect(() => {
+    if (board && board.messages) {
+      const messageCount = board.messages.length;
+      let newHeight;
+      
+      if (messageCount <= 5) {
+        newHeight = 800; // 基本サイズ
+      } else if (messageCount <= 10) {
+        newHeight = 900; // 少し大きく
+      } else if (messageCount <= 15) {
+        newHeight = 1000; // さらに大きく
+      } else if (messageCount <= 20) {
+        newHeight = 1100; // もっと大きく
+      } else {
+        // 20個以上のメッセージがある場合はさらに大きく
+        newHeight = 1200 + Math.floor((messageCount - 20) / 5) * 100;
+      }
+      
+      // スマホの場合は高さを調整
+      if (windowWidth <= 480) {
+        newHeight = Math.max(500, newHeight * 0.7);
+      } else if (windowWidth <= 768) {
+        newHeight = Math.max(600, newHeight * 0.8);
+      }
+      
+      setBoardHeight(newHeight);
+      
+      // メッセージの位置を評価して、はみ出しを防ぐ
+      const newEdgeClasses = {};
+      board.messages.forEach(msg => {
+        const classes = [];
+        
+        // 左右の端に近い場合
+        if (msg.position.x < 10) classes.push('left-edge');
+        else if (msg.position.x > 90) classes.push('right-edge');
+        
+        // 上下の端に近い場合
+        if (msg.position.y < 10) classes.push('top-edge');
+        else if (msg.position.y > 90) classes.push('bottom-edge');
+        
+        if (classes.length > 0) {
+          newEdgeClasses[msg.id] = classes.join(' ');
+        }
+      });
+      
+      setMessageEdgeClasses(newEdgeClasses);
+    }
+  }, [board, windowWidth]);
+
   if (loading) return <div className="loading">読み込み中...</div>;
   if (error) return <div className="error-message">{error}</div>;
   if (!board) return <div className="not-found">色紙が見つかりません。</div>;
@@ -270,11 +314,16 @@ function Board() {
         </button>
       </div>
       
+      <div className="size-auto-message">
+        メッセージ数: {board.messages?.length || 0}件 
+        {board.messages?.length > 5 && '（メッセージ数に合わせて色紙サイズは自動調整されています）'}
+      </div>
+      
       <div 
         ref={boardRef}
         className="message-board"
         style={{ 
-          ...getBoardSizeStyle(),
+          minHeight: `${boardHeight}px`,
           backgroundColor: board.backgroundColor 
         }}
       >
@@ -285,7 +334,7 @@ function Board() {
         {board.messages && board.messages.map((message, index) => (
           <div
             key={message.id || index}
-            className={`message ${messageOverlaps.has(message.id) ? 'overlapping-center' : ''}`}
+            className={`message ${messageEdgeClasses[message.id] || ''}`}
             style={{
               left: `${message.position.x}%`,
               top: `${message.position.y}%`,
